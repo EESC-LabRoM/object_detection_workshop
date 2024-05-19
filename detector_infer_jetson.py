@@ -11,7 +11,6 @@ Functions:
     load_config_file(config_file_path): Load the configuration file and extract the label file path.
     load_label_file(label_file_path): Load labels from the label file and create a mapping of class names to IDs.
     process_frame(frame_meta, object_classes, batch_meta): Process each frame, count objects, and update display metadata.
-    setup_logging(): Configure and set up logging for the application.
     create_pipeline(device_path): Create and configure the GStreamer pipeline and its elements.
     link_elements(elements): Link the GStreamer elements within the pipeline.
     osd_sink_pad_buffer_probe(pad, info, u_data): Probe function to handle metadata extraction and display updates.
@@ -29,6 +28,9 @@ sys.path.append('../')
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GLib, Gst
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 import pyds
@@ -123,17 +125,6 @@ def process_frame(frame_meta, object_classes, batch_meta):
     py_nvosd_text_params.text_bg_clr.set(0.0, 0.0, 0.0, 1.0)
     pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
 
-def setup_logging():
-    """
-    Configure and set up logging for the application.
-
-    Returns:
-        Logger: Configured logger instance.
-    """
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
-    return logging.getLogger('object_detection_pipeline')
 
 def create_pipeline(device_path):
     """
@@ -290,8 +281,6 @@ def main(args):
     Returns:
         int: Exit status.
     """
-    setup_logging()
-    logger = logging.getLogger('object_detection_pipeline')
     
     Gst.init(None)
     loop = GLib.MainLoop()
