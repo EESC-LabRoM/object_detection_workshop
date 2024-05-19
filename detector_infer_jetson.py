@@ -126,12 +126,9 @@ def process_frame(frame_meta, object_classes, batch_meta):
     pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
 
 
-def create_pipeline(device_path):
+def create_pipeline():
     """
     Create and configure the GStreamer pipeline and its elements.
-
-    Args:
-        device_path (str): Path to the V4L2 device.
 
     Returns:
         dict: Dictionary containing the created GStreamer elements.
@@ -281,12 +278,12 @@ def main(args):
     Returns:
         int: Exit status.
     """
-    
+
     Gst.init(None)
     loop = GLib.MainLoop()
     
     device_path = "/dev/video0" if len(args) < 2 else args[1]
-    elements = create_pipeline(device_path)
+    elements = create_pipeline()
     link_elements(elements)
     set_element_properties(elements, device_path)
     
