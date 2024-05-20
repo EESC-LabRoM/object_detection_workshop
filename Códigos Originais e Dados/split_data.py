@@ -6,7 +6,6 @@ import logging
 import logging.config
 
 from pathlib import Path
-from utils.json import get_json_from_file
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,15 +27,10 @@ def split_dataset(images_dir, labels_json_path, output_dir, train_ratio=0.75, va
     """
     Splits a COCO dataset into training, validation, and testing sets based on given ratios.
     """
-    try:
-        logger.info("Loading COCO annotations...")
-        coco_data = get_json_from_file(labels_json_path)
-    except FileNotFoundError:
-        logger.error(f"File not found: {labels_json_path}")
-        return
-    except json.JSONDecodeError:
-        logger.error(f"Invalid JSON in file: {labels_json_path}")
-        return
+
+    logger.info("Loading COCO annotations...")
+    with open(labels_json_path, 'r') as f:
+        coco_data = json.load(f)
 
     images_dir = Path(images_dir)
     output_dir = Path(output_dir)
