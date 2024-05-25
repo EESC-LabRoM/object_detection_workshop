@@ -8,6 +8,10 @@
 - [Embarcado na Jetson](/Códigos%20Originais%20e%20Dados/detector_infer_jetson.py) <br>
 - [Visualização do Processo](/Códigos%20Originais%20e%20Dados/vision_setup.sh) <br>
 
+## Dados
+
+- [Dataset](https://drive.google.com/drive/folders/1zUIphpnM9JvzkhCJYgjFE5hVZhL5BLSh?usp=drive_link)
+
 ## Aulas Desenvolvidas
 
 - [Aula 1: Divisão do Dataset](/Aulas/Aula%201.ipynb) <br>
