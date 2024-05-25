@@ -1,0 +1,9 @@
+# Ignore the Data/Dataset directory
+Dados/Dataset/
+
+# Ignore the images and labels directories inside Data/Saida
+Dados/Saida/images/
+Dados/Saida/labels/
+
+# Ensure the Data/Saida directory itself is not ignored
+!Dados/Saida/
