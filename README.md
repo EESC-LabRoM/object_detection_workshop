@@ -25,7 +25,7 @@
 Para executar as aulas, basta criar um ambiente conda com as seguintes dependências.
 
 ```bash 
-conda create --name object_detection_amb python=3.x  # specify the Python version you need
+conda create --name object_detection_amb python=3.10  # specify the Python version you need
 conda activate object_detection_amb
 pip install -r requirements.txt
 ```
