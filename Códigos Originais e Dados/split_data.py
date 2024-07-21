@@ -19,11 +19,25 @@ def copy_images(images, src_dir, dest_dir):
             src_path = Path(src_dir) / image['file_name']
             dest_path = Path(dest_dir) / src_path.name
             shutil.copy(src_path, dest_path)
-            logger.info(f"Successfully copied {src_path} to {dest_path}")
+            logger.debug(f"Successfully copied {src_path} to {dest_path}")
         except Exception as e:
             logger.error(f"Failed to copy {src_path} to {dest_path}: {e}")
 
-def split_dataset(images_dir, labels_json_path, output_dir, train_ratio=0.75, val_ratio=0.1):
+def filter_annotations(images_set, annotations, is_pose_estimation):
+    image_ids = {image['id'] for image in images_set}
+    if is_pose_estimation:
+        return [annotation for annotation in annotations if annotation['image_id'] in image_ids and 'keypoints' in annotation]
+    else:
+        return [annotation for annotation in annotations if annotation['image_id'] in image_ids]
+
+def create_coco_subset(images, annotations, categories):
+    return {
+        'images': images,
+        'annotations': annotations,
+        'categories': categories
+    }
+
+def split_dataset(images_dir, labels_json_path, output_dir, train_ratio=0.75, val_ratio=0.1, is_pose_estimation=False):
     """
     Splits a COCO dataset into training, validation, and testing sets based on given ratios.
     """
@@ -42,6 +56,15 @@ def split_dataset(images_dir, labels_json_path, output_dir, train_ratio=0.75, va
     # Extract image and annotation details
     images = coco_data.get('images', [])
     annotations = coco_data.get('annotations', [])
+    categories = coco_data.get('categories', [])
+
+    # Log the count of annotated images and objects
+    logger.info(f"Total annotated images: {len(images)}")
+    logger.info(f"Total annotated objects: {len(annotations)}")
+
+    # Log the total amount of images in the images folder
+    total_images_in_folder = len(list(images_dir.glob('*')))
+    logger.info(f"Total images in the folder {images_dir}: {total_images_in_folder}")
 
     # Validate ratios
     if not (0 < train_ratio < 1 and 0 <= val_ratio < 1 and train_ratio + val_ratio <= 1):
@@ -57,17 +80,6 @@ def split_dataset(images_dir, labels_json_path, output_dir, train_ratio=0.75, va
     val_images = images[train_end:val_end]
     test_images = images[val_end:]
 
-    def filter_annotations(images_set):
-        image_ids = {image['id'] for image in images_set}
-        return [annotation for annotation in annotations if annotation['image_id'] in image_ids]
-
-    def create_coco_subset(images, annotations):
-        return {
-            'images': images,
-            'annotations': annotations,
-            'categories': coco_data['categories']
-        }
-
     for type, images_set in zip(["train", "val", "test"], [train_images, val_images, test_images]):
         try:
             images_output_path = output_dir / "images" / type
@@ -78,7 +90,8 @@ def split_dataset(images_dir, labels_json_path, output_dir, train_ratio=0.75, va
 
             copy_images(images_set, images_dir, images_output_path)
 
-            coco_file = create_coco_subset(images_set, filter_annotations(images_set))
+            filtered_annotations = filter_annotations(images_set, annotations, is_pose_estimation)
+            coco_file = create_coco_subset(images_set, filtered_annotations, categories)
             with open(labels_output_path / "coco.json", 'w') as file:
                 json.dump(coco_file, file, indent=4)
             logger.info(f"Dataset for {type} saved successfully.")
@@ -92,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("output_dir", help="Path to the root output directory for training, validation, and testing sets.")
     parser.add_argument("--train_ratio", type=float, default=0.75, help="Proportion of images for training (default: 0.75)")
     parser.add_argument("--val_ratio", type=float, default=0.1, help="Proportion of images for validation (default: 0.1)")
+    parser.add_argument("--pose_estimation", action='store_true', help="Flag to indicate if the dataset is for pose estimation")
 
     args = parser.parse_args()
-    split_dataset(args.images_dir, args.coco_json_path, args.output_dir, args.train_ratio, args.val_ratio)
+    split_dataset(args.images_dir, args.coco_json_path, args.output_dir, args.train_ratio, args.val_ratio, args.pose_estimation)
