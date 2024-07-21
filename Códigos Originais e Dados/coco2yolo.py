@@ -20,7 +20,18 @@ def convert_coco_to_yolo(size, box):
     h = box[3] * dh
     return (x, y, w, h)
 
-def process_annotations(dataset_path):
+def convert_keypoints_to_yolo(size, keypoints):
+    """
+    Convert COCO keypoints format to YOLO format.
+    size: (width, height) of the image
+    keypoints: [x1, y1, v1, x2, y2, v2, ..., xk, yk, vk] COCO keypoints
+    """
+    dw = 1. / size[0]
+    dh = 1. / size[1]
+    yolo_keypoints = [(keypoints[i] * dw, keypoints[i + 1] * dh, keypoints[i + 2]) for i in range(0, len(keypoints), 3)]
+    return yolo_keypoints
+
+def process_annotations(dataset_path, is_pose_estimation=False):
     """
     Process COCO annotations and convert them to YOLO format.
     """
@@ -47,10 +58,15 @@ def process_annotations(dataset_path):
             
             txt_path = label_path.parent / (img_filename.stem + '.txt')
             with open(txt_path, 'a') as file:
-                file.write(f"{category_id} {' '.join(map(str, yolo_bbox))}\n")
+                if is_pose_estimation and 'keypoints' in ann:
+                    keypoints = convert_keypoints_to_yolo(img_size, ann['keypoints'])
+                    keypoints_str = ' '.join([f"{kp[0]} {kp[1]} {kp[2]}" for kp in keypoints])
+                    file.write(f"{category_id} {' '.join(map(str, yolo_bbox))} {keypoints_str}\n")
+                else:
+                    file.write(f"{category_id} {' '.join(map(str, yolo_bbox))}\n")
             logger.info(f"Processed annotation for image: {img_filename}")
 
-def create_yaml_file(dataset_path):
+def create_yaml_file(dataset_path, is_pose_estimation=False):
     """
     Create a .yml file for the dataset configuration using class names extracted from coco.json.
     """
@@ -77,6 +93,13 @@ names:
 {class_entries}
     """
 
+    if is_pose_estimation:
+        categories = data['categories']
+        keypoints_info = categories[0].get('keypoints', [])
+        kpt_shape = [len(keypoints_info), 3]
+
+        yaml_content += f"\n\n# Keypoints\nkpt_shape: {kpt_shape}"
+
     yaml_path = dataset_path / 'data.yaml'
     with open(yaml_path, 'w') as file:
         file.write(yaml_content.strip())
@@ -85,9 +108,10 @@ names:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process COCO annotations and create YOLO dataset.")
     parser.add_argument("dataset_path", help="Path to the root directory of the dataset.")
+    parser.add_argument("--pose_estimation", action='store_true', help="Flag to indicate if the dataset is for pose estimation")
     
     args = parser.parse_args()
     dataset_root = Path(args.dataset_path)
     
-    process_annotations(dataset_root)
-    create_yaml_file(dataset_root)
+    process_annotations(dataset_root, args.pose_estimation)
+    create_yaml_file(dataset_root, args.pose_estimation)
